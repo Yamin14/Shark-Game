@@ -4,6 +4,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.graphics import *
 from kivy.clock import Clock
+import random
 
 class Game(Widget):
 	def __init__(self, **kwargs):
@@ -13,6 +14,7 @@ class Game(Widget):
 		self.direction_x = "Right"
 		self.direction_y = "Up"
 		self.const_x, self.const_y = 200, 300
+		self.p_ups = []
 		
 		#background
 		with self.canvas:
@@ -21,11 +23,17 @@ class Game(Widget):
 			
 		#health
 		self.health = 200
-		self.decrease = 0.10
+		self.decrease = 0.20
 		with self.canvas:
 			Label(text="Health: ", pos=(30, 625), font_size=40, color=(0, 1, 0, 1))
 			Color(rgb=(0, 1, 0))
 			self.health_bar = Rectangle(size=(self.health, 50), pos=(150, 650))
+			
+		#score
+		self.score = 0
+		self.inc_score = 1
+		self.score_label = Label(text=f"Score: {self.score}", pos=(40, 580), font_size=40, color=(0, 1, 0, 1))
+		self.add_widget(self.score_label)
 			
 		#the shark
 		self.x, self.y = 200, 300
@@ -58,10 +66,31 @@ class Game(Widget):
 			self.game_over_label = Label(text="", pos=(700, 300), font_size=70, color=(1, 0, 0, 1))
 			self.add_widget(self.game_over_label)
 			
-			Clock.schedule_interval(self.play, 0)
+			#power up
+			with self.canvas:
+				Color(rgb=(1, 0, 1))
+				for i in range(random.randint(5, 10)):
+					self.px = random.randint(100,1400)
+					self.py = random.randint(200, 700)
+					self.p_ups.append(Ellipse(size=(30, 30), pos=(self.px, self.py)))
 			
+			Clock.schedule_interval(self.play, 0)
+			Clock.schedule_interval(self.update_score, 1)
+			
+	def update_score(self, dt):
+		self.score += self.inc_score
+		self.score_label.text = f"Score: {self.score}"
+	
 	def play(self, dt):
 		#update health
+		for i in self.p_ups:
+			if i.pos[0] >= self.x+200 and i.pos[0] <= self.x+240 and i.pos[1] >= self.y+10 and i.pos[1] <= self.y+50:
+				if self.health < 200:
+					self.health += 20
+				self.px = random.randint(100,1400)
+				self.py = random.randint(200, 700)
+				i.pos = (self.px, self.py)	
+				
 		if self.health > 0:
 			self.health -= self.decrease
 		self.health_bar.size = (self.health, 50)
@@ -70,7 +99,9 @@ class Game(Widget):
 		if self.health <= 0:
 			self.game_over = True
 			self.speed = 0
-			self.game_over_label.text = "Game Over"
+			self.inc_score = 0
+			self.game_over_label.text = f"""Game Over
+Score: {self.score}"""
 		
 		#moving
 		if self.moving == True:
@@ -106,6 +137,8 @@ class Game(Widget):
 			self.game_over = False
 			self.health = 200
 			self.speed = 5
+			self.score = 0
+			self.inc_score = 1
 			self.game_over_label.text = ""
 		
 	def on_touch_move(self, touch):
